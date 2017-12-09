@@ -3,26 +3,25 @@
 import os, gzip, bz2
 import numpy
 
-def load(cls, which_set, fileidx, filetype):
+def load(cls, which_set, filetype):
     """
     Reads and returns a single file as a numpy array.
     """
     assert which_set in ['train', 'test']
     assert filetype in ['dat', 'cat', 'info']
-    assert fileidx in ['01','02','03','04','05','06','07','08','09','10']
 
-def getPath(which_set, fileidx, filetype):
+def get_path(which_set, filetype):
     dirname = 'norb-small'
     if which_set == 'train':
         instance_list = '46789'
     elif which_set == 'test':
         instance_list = '01235'
-    filename = 'smallnorb-5x%sx9x18x6x2x108x108-%s-%s-%s.mat' % \
-        (instance_list, which_set + 'ing', fileidx, filetype)
+    filename = 'smallnorb-5x%sx9x18x6x2x96x96-%s-%s.mat' % \
+        (instance_list, which_set + 'ing', filetype)
     return os.path.join(dirname, filename)
 
 
-def readNums(file_handle, num_type, count):
+def read_nums(file_handle, num_type, count):
     """
     Reads 4 bytes from file, returns it as a 32-bit integer.
     """
@@ -30,7 +29,7 @@ def readNums(file_handle, num_type, count):
     string = file_handle.read(num_bytes)
     return numpy.fromstring(string, dtype = num_type)
 
-def readHeader(file_handle, debug=False, from_gzip=None):
+def read_header(file_handle, debug=False, from_gzip=None):
     """
     :param file_handle: an open file handle. 
     :type file_handle: a file or gzip.GzipFile object
@@ -53,20 +52,18 @@ def readHeader(file_handle, debug=False, from_gzip=None):
                     0x1E3D4C55 : ('uint8', 1),
                     0x1E3D4C56 : ('int16', 2) }
 
-    type_key = readNums(file_handle, 'int32', 1)[0]
+    type_key = read_nums(file_handle, 'int32', 1)[0]
     elem_type, elem_size = key_to_type[type_key]
-    if debug: 
-        print "header's type key, type, type size: ", \
-            type_key, elem_type, elem_size
+
     if elem_type == 'packed matrix':
         raise NotImplementedError('packed matrix not supported')
 
-    num_dims = readNums(file_handle, 'int32', 1)[0]
+    num_dims = read_nums(file_handle, 'int32', 1)[0]
     if debug: 
-        print '# of dimensions, according to header: ', num_dims
+        print('# of dimensions, according to header: ', num_dims)
 
     if from_gzip:
-        shape = readNums(file_handle, 
+        shape = read_nums(file_handle, 
                          'int32',
                          max(num_dims, 3))[:num_dims]
     else:
@@ -75,12 +72,12 @@ def readHeader(file_handle, debug=False, from_gzip=None):
                                count=max(num_dims, 3))[:num_dims]
 
     if debug: 
-        print 'Tensor shape, as listed in header:', shape
+        print('Tensor shape, as listed in header:', shape)
 
     return elem_type, elem_size, shape
 
 
-def parseNORBFile(file_handle, subtensor=None, debug=False):
+def parse_NORB_file(file_handle, subtensor=None, debug=False):
     """
     Load all or part of file 'f' into a numpy ndarray
     :param file_handle: file from which to read file can be opended with
@@ -99,7 +96,7 @@ def parseNORBFile(file_handle, subtensor=None, debug=False):
       see if your particular type of subtensor is supported.
       """
 
-    elem_type, elem_size, shape = readHeader(file_handle,debug)
+    elem_type, elem_size, shape = read_header(file_handle,debug)
     beginning = file_handle.tell()
 
     num_elems = numpy.prod(shape)
@@ -108,9 +105,9 @@ def parseNORBFile(file_handle, subtensor=None, debug=False):
     if isinstance(file_handle, (gzip.GzipFile, bz2.BZ2File)):
         assert subtensor is None, \
             "Subtensors on gzip files are not implemented."
-        result = readNums(file_handle, 
-                          elem_type, 
-                          num_elems*elem_size).reshape(shape)
+        result = read_nums(file_handle, 
+                           elem_type, 
+                           num_elems*elem_size).reshape(shape)
     elif subtensor is None:
         result = numpy.fromfile(file_handle,
                                 dtype = elem_type,
@@ -129,5 +126,9 @@ def parseNORBFile(file_handle, subtensor=None, debug=False):
         raise NotImplementedError('subtensor access not written yet:',
                                   subtensor) 
                 
-    return result
+    return result.reshape((result.shape[0] * 2, -1))
+
+def norb_data(dataset='train', filetype='dat'):
+    infile = open(get_path(dataset, filetype), mode='rb')
+    return parse_NORB_file(infile)
 
