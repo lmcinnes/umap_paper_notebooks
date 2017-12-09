@@ -77,7 +77,7 @@ def read_header(file_handle, debug=False, from_gzip=None):
     return elem_type, elem_size, shape
 
 
-def parse_NORB_file(file_handle, subtensor=None, debug=False):
+def parse_NORB_file(file_handle, subtensor=None, debug=False, filetype='dat'):
     """
     Load all or part of file 'f' into a numpy ndarray
     :param file_handle: file from which to read file can be opended with
@@ -125,10 +125,17 @@ def parse_NORB_file(file_handle, subtensor=None, debug=False):
     else:
         raise NotImplementedError('subtensor access not written yet:',
                                   subtensor) 
-                
-    return result.reshape((result.shape[0] * 2, -1))
+    if filetype == 'dat':
+        return result.reshape((result.shape[0] * 2, -1))
+    else:
+        return result
 
 def norb_data(dataset='train', filetype='dat'):
     infile = open(get_path(dataset, filetype), mode='rb')
-    return parse_NORB_file(infile)
+    return parse_NORB_file(infile, filetype='dat')
+
+def norb_labels(dataset='train'):
+    infile = open(get_path(dataset, 'cat'), mode='rb')
+    return parse_NORB_file(infile, filetype='cat')
+
 
