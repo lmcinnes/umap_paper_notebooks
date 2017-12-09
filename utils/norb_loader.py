@@ -17,7 +17,7 @@ def getPath(which_set, fileidx, filetype):
         instance_list = '46789'
     elif which_set == 'test':
         instance_list = '01235'
-    filename = 'norb-5x%sx9x18x6x2x108x108-%s-%s-%s.mat' % \
+    filename = 'smallnorb-5x%sx9x18x6x2x108x108-%s-%s-%s.mat' % \
         (instance_list, which_set + 'ing', fileidx, filetype)
     return os.path.join(dirname, filename)
 
